@@ -1,0 +1,47 @@
+#include <cstdio>
+#include <cstring>
+
+typedef struct{
+	unsigned char r,g,b;
+} RGB;
+
+
+int main(void)
+{
+	unsigned char hdr[54];
+	unsigned char dat[4258];
+	int width, height, padding;
+	int i,j;
+	FILE* fp = fopen("MARBLES.BMP","rb");
+	RGB img[1419][1001];
+
+	fread(hdr,sizeof(unsigned char),54,fp);
+	
+	width = *(int*)&hdr[18];
+	height = *(int*)&hdr[22];
+	for(padding=0;(width*3+padding)%4;++padding);
+	
+	for(i=0;i<height;++i)
+	{
+		fread(dat,sizeof(unsigned char),width*3+padding,fp);
+		for(j=0;j<width*3;j+=3)
+		{
+			img[j/3][height-i-1].r = dat[j];
+			img[j/3][height-i-1].g = dat[j+1];
+			img[j/3][height-i-1].b = dat[j+2];
+		}
+	}
+	fclose(fp);
+
+	fp = fopen("MARBLES.BMP","r+b");
+	fread(hdr,sizeof(unsigned char),54,fp);
+	for(i=0;i<height;++i)
+	{
+		memset(dat,0,4258*sizeof(unsigned char));
+		for(j=0;j<width*3;j+=3)
+			dat[j] = img[j/3][height-i-1].r;
+		fwrite(dat,sizeof(unsigned char),width*3+padding,fp);
+	}
+	fclose(fp);
+	return 0;
+}
