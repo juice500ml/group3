@@ -16,6 +16,52 @@ typedef struct _node {
 	} u;
 } node;
 
+// 양수인 경우에 트리로 연산하는게 이득
+// 음수이면 손해 (양수여도 값이 다소 작은 경우도 사실상 손해지만 무시)
+int tree_calc_nodes(node tree, int depth)
+{
+	int sum = 0;
+	switch(tree.stat)
+	{
+		case ALL_NODE:
+			for(int i=0;i<4;++i)
+				sum += tree_calc_nodes(tree.u.child[i],depth+1);
+			break;
+		case LR_NODE:
+		case UD_NODE:
+			for(int i=0;i<2;++i)
+				sum += tree_calc_nodes(tree.u.child[i],depth+1);
+			break;
+		case NO_NODE:
+			sum =  tree.w*tree.h - depth;
+			break;
+		default:
+			puts("Error caught in tree_calc_nodes.");
+	}
+	return sum;
+}
+
+// 사용법: 프로그레스 바 사용 직전에 tree_progress(true,총픽셀개수)로 초기화
+// 재귀 함수 안에 삽입
+// 재귀 함수 내에서는 tree_progress(false,연산 완료된 픽셀 개수)로 사용하면
+// 완료된 픽셀 개수 피율이 %로 리턴.
+// example. make_tree() 함수 내 사용 참조
+int tree_progress(bool init, int pixels)
+{
+	static int cur_pixels;
+	static int tot_pixels;
+	if(init)
+	{
+		tot_pixels = pixels;
+		cur_pixels = 0;
+	}
+	else
+	{
+		cur_pixels += pixels;
+	}
+	return cur_pixels*100/tot_pixels;
+}
+
 void free_tree(node tree)
 {
 	switch(tree.stat)
@@ -82,6 +128,8 @@ node make_tree(RGB** img, int r, int c, int h, int w)
 	{
 		base.stat = NO_NODE;
 		base.u.color = img[r][c];
+		if(tree_progress(false,0)!=tree_progress(false,w*h)&&tree_progress(false,0)%5==0)
+			printf("%d%% complete\n",tree_progress(false,0));
 	}
 	else
 	{
@@ -145,7 +193,6 @@ node rgb_ratio(node tree,float r_weight,float g_weight,float b_weight)
 	}
 	return tree;
 }
-
 node rgb_relation(node tree,int r_relation[256],int g_relation[256],int b_relation[256])
 {
 	int r,g,b;
@@ -264,8 +311,8 @@ int main(void)
 	unsigned char *dat;
 	int width, height, padding;
 	int i,j;
+	RGB** img;
 	FILE *out, *fp = fopen("marbles.bmp","rb");
-	RGB **img;
 
 	fread(hdr,sizeof(unsigned char),54,fp);
 
@@ -274,7 +321,7 @@ int main(void)
 	for(padding=0;(width*3+padding)%4;++padding);
 	dat = (unsigned char*)malloc(sizeof(unsigned char)*((width*3)+padding));
 	img = (RGB**)malloc(sizeof(RGB*)*height);
-	for(i=0;i<width;++i)
+	for(i=0;i<height;++i)
 		img[i] = (RGB*)malloc(sizeof(RGB)*width);
 	/*====== 초기화 ======*/
 
@@ -289,15 +336,14 @@ int main(void)
 		}
 	}
 	fclose(fp);
-
+	tree_progress(true,height*width);
 	node n = make_tree(img,0,0,height,width);
-//	n = rgb_ratio(n,0,1,0);
 	n = hist_eq(n);
 	tree_to_array(img,n);
 	free_tree(n);
 	
 	fp = fopen("marbles.bmp","rb");
-	out = fopen("change.bmp","wb");
+	out = fopen("marbles_change.bmp","wb");
 	fread(hdr,sizeof(unsigned char),54,fp);
 	fwrite(hdr,sizeof(unsigned char),54,out);
 	for(i=0;i<height;++i)
@@ -312,6 +358,7 @@ int main(void)
 		fwrite(dat,sizeof(unsigned char),width*3+padding,out);
 	}
 	fclose(fp);
+	fclose(out);
 	return 0;
 }
 
