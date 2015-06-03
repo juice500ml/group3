@@ -15,22 +15,23 @@ typedef struct _node {
 		RGB color;
 	} u;
 } node;
+RGB** img;
 
 // 양수인 경우에 트리로 연산하는게 이득
 // 음수이면 손해 (양수여도 값이 다소 작은 경우도 사실상 손해지만 무시)
-int tree_calc_nodes(node tree, int depth)
+/*{{{*/int ds_cmp(node tree, int depth)
 {
 	int sum = 0;
 	switch(tree.stat)
 	{
 		case ALL_NODE:
 			for(int i=0;i<4;++i)
-				sum += tree_calc_nodes(tree.u.child[i],depth+1);
+				sum += ds_cmp(tree.u.child[i],depth+1);
 			break;
 		case LR_NODE:
 		case UD_NODE:
 			for(int i=0;i<2;++i)
-				sum += tree_calc_nodes(tree.u.child[i],depth+1);
+				sum += ds_cmp(tree.u.child[i],depth+1);
 			break;
 		case NO_NODE:
 			sum =  tree.w*tree.h - depth;
@@ -40,8 +41,9 @@ int tree_calc_nodes(node tree, int depth)
 	}
 	return sum;
 }
+/*}}}*/
 
-// 사용법: 프로그레스 바 사용 직전에 tree_progress(true,총픽셀개수)로 초기화
+// 사용법: 프로그레스 바 사용 직전에 tree_progress(true,총픽셀개수)로 초기화/*{{{*/
 // 재귀 함수 안에 삽입
 // 재귀 함수 내에서는 tree_progress(false,연산 완료된 픽셀 개수)로 사용하면
 // 완료된 픽셀 개수 피율이 %로 리턴.
@@ -60,9 +62,8 @@ int tree_progress(bool init, int pixels)
 		cur_pixels += pixels;
 	}
 	return cur_pixels*100/tot_pixels;
-}
-
-void free_tree(node tree)
+}/*}}}*/
+void free_tree(node tree)/*{{{*/
 {
 	switch(tree.stat)
 	{
@@ -83,8 +84,8 @@ void free_tree(node tree)
 			puts("Error caught in free_tree.");
 	}
 }
-
-void tree_to_array(RGB** img, node tree)
+/*}}}*/
+void tree_to_array(RGB** img, node tree)/*{{{*/
 {
 	switch(tree.stat)
 	{
@@ -105,9 +106,8 @@ void tree_to_array(RGB** img, node tree)
 		default:
 			puts("Error caught in tree_to_array.");
 	}
-}
-
-node make_tree(RGB** img, int r, int c, int h, int w)
+}/*}}}*/
+node make_tree(RGB** img, int r, int c, int h, int w)/*{{{*/
 {
 	node base;
 	int i,j;
@@ -128,9 +128,9 @@ node make_tree(RGB** img, int r, int c, int h, int w)
 	{
 		base.stat = NO_NODE;
 		base.u.color = img[r][c];
-		if(tree_progress(false,0)!=tree_progress(false,w*h)&&tree_progress(false,0)%5==0)
+/*		if(tree_progress(false,0)!=tree_progress(false,w*h)&&tree_progress(false,0)%5==0)
 			printf("%d%% complete\n",tree_progress(false,0));
-	}
+*/	}
 	else
 	{
 		if(w==1)
@@ -158,9 +158,8 @@ node make_tree(RGB** img, int r, int c, int h, int w)
 		}
 	}
 	return base;
-}
-
-node rgb_ratio(node tree,float r_weight,float g_weight,float b_weight)
+}/*}}}*/
+node rgb_ratio(node tree,float r_weight,float g_weight,float b_weight)/*{{{*/
 {
 	switch(tree.stat)
 	{
@@ -192,8 +191,8 @@ node rgb_ratio(node tree,float r_weight,float g_weight,float b_weight)
 			puts("Error caught in rgb_ratio.");
 	}
 	return tree;
-}
-node rgb_relation(node tree,int r_relation[256],int g_relation[256],int b_relation[256])
+}/*}}}*/
+node rgb_relation(node tree,int r_relation[256],int g_relation[256],int b_relation[256])/*{{{*/
 {
 	int r,g,b;
 	switch(tree.stat)
@@ -225,9 +224,8 @@ node rgb_relation(node tree,int r_relation[256],int g_relation[256],int b_relati
 			puts("Error caught in rgb_relation.");
 	}
 	return tree;
-}
-
-void make_hist(node tree, int hr[256], int hb[256], int hg[256])
+}/*}}}*/
+void make_hist(node tree, int hr[256], int hg[256], int hb[256])
 {
 	switch(tree.stat)
 	{
@@ -238,12 +236,12 @@ void make_hist(node tree, int hr[256], int hb[256], int hg[256])
 			break;
 		case ALL_NODE:
 			for(int i=0;i<4;++i)
-				make_hist(tree.u.child[i],hr,hb,hg);
+				make_hist(tree.u.child[i],hr,hg,hb);
 			break;
 		case LR_NODE:
 		case UD_NODE:
 			for(int i=0;i<2;++i)
-				make_hist(tree.u.child[i],hr,hb,hg);
+				make_hist(tree.u.child[i],hr,hg,hb);
 			break;
 		default:
 			puts("Error caught in make_hist.");
@@ -260,8 +258,7 @@ node hist_eq(node tree)
 	int cg[256] = {0,};
 	int i,j;
 
-	make_hist(tree,hr,hb,hg);
-
+	make_hist(tree,hr,hg,hb);
 	// smooth histogram (optional)
 	{
 		hr[0] = (hr[0]+hr[1])/2;
@@ -274,10 +271,9 @@ node hist_eq(node tree)
 		hb[255] = (hb[254]+hb[255])/2;
 		for(i=1;i<255;++i) hb[i] = (hb[i-1]+hb[i]+hb[i+1])/3;
 	}
-
 	cr[0] = hr[0];
-	cb[0] = hb[0];
 	cg[0] = hg[0];
+	cb[0] = hb[0];
 	for(i=1;i<256;++i)
 	{
 		cr[i] += cr[i-1]+hr[i];
@@ -288,19 +284,19 @@ node hist_eq(node tree)
 	{
 		cr[i] *= 256;
 		cr[i] /= tree.w*tree.h;
+		cg[i] *= 256;
+		cg[i] /= (tree.w*tree.h);
+		cb[i] *= 256;
+		cb[i] /= (tree.w*tree.h);
 		if(cr[i]<0) cr[i] = 0;
 		if(cr[i]>255) cr[i] = 255;
-		cg[i] *= 256;
-		cg[i] /= tree.w*tree.h;
 		if(cg[i]<0) cg[i] = 0;
 		if(cg[i]>255) cg[i] = 255;
-		cb[i] *= 256;
-		cb[i] /= tree.w*tree.h;
 		if(cb[i]<0) cb[i] = 0;
 		if(cb[i]>255) cb[i] = 255;
 	}
 
-	tree = rgb_relation(tree,cr,cb,cg);
+	tree = rgb_relation(tree,cr,cg,cb);
 
 	return tree;
 }
@@ -311,7 +307,6 @@ int main(void)
 	unsigned char *dat;
 	int width, height, padding;
 	int i,j;
-	RGB** img;
 	FILE *out, *fp = fopen("marbles.bmp","rb");
 
 	fread(hdr,sizeof(unsigned char),54,fp);
@@ -327,6 +322,7 @@ int main(void)
 
 	for(i=0;i<height;++i)
 	{
+
 		fread(dat,sizeof(unsigned char),width*3+padding,fp); /* 이미지는 bgr 순서로 저장됩니다. */
 		for(j=0;j<width*3;j+=3)
 		{
@@ -341,7 +337,7 @@ int main(void)
 	n = hist_eq(n);
 	tree_to_array(img,n);
 	free_tree(n);
-	
+
 	fp = fopen("marbles.bmp","rb");
 	out = fopen("marbles_change.bmp","wb");
 	fread(hdr,sizeof(unsigned char),54,fp);
@@ -360,5 +356,6 @@ int main(void)
 	fclose(fp);
 	fclose(out);
 	return 0;
+
 }
 
