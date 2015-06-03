@@ -177,9 +177,6 @@ node rgb_ratio(node tree,float r_weight,float g_weight,float b_weight)/*{{{*/
 			r = ((float) tree.u.color.r) * r_weight;
 			g = ((float) tree.u.color.g) * g_weight;
 			b = ((float) tree.u.color.b) * b_weight;
-			if(r<0) r = 0;
-			if(g<0) g = 0;
-			if(b<0) b = 0;
 			if(r>255) r = 255;
 			if(g>255) g = 255;
 			if(b>255) b = 255;
@@ -192,6 +189,39 @@ node rgb_ratio(node tree,float r_weight,float g_weight,float b_weight)/*{{{*/
 	}
 	return tree;
 }/*}}}*/
+
+node rgb_bias(node tree,int r_bias,int g_bias,int b_bias)/*{{{*/
+{
+	switch(tree.stat)
+	{
+		case ALL_NODE:
+			for(int i=0;i<4;++i)
+				tree.u.child[i] = rgb_bias(tree.u.child[i],r_bias,g_bias,b_bias);
+			break;
+		case LR_NODE:
+		case UD_NODE:
+			for(int i=0;i<2;++i)
+				tree.u.child[i] = rgb_bias(tree.u.child[i],r_bias,g_bias,b_bias);
+			break;
+		case NO_NODE:
+			float r,g,b;
+			r = tree.u.color.r + r_bias;
+			g = tree.u.color.g + g_bias;
+			b = tree.u.color.b + b_bias;
+			if(r>255) r = 255;
+			if(g>255) g = 255;
+			if(b>255) b = 255;
+			tree.u.color.r = (unsigned char) r;
+			tree.u.color.g = (unsigned char) g;
+			tree.u.color.b = (unsigned char) b;
+			break;
+		default:
+			puts("Error caught in rgb_ratio.");
+	}
+	return tree;
+}/*}}}*/
+
+
 node rgb_relation(node tree,int r_relation[256],int g_relation[256],int b_relation[256])/*{{{*/
 {
 	int r,g,b;
@@ -210,9 +240,6 @@ node rgb_relation(node tree,int r_relation[256],int g_relation[256],int b_relati
 			r = r_relation[tree.u.color.r];
 			g = g_relation[tree.u.color.g];
 			b = b_relation[tree.u.color.b];
-			if(r<0) r = 0;
-			if(g<0) g = 0;
-			if(b<0) b = 0;
 			if(r>255) r = 255;
 			if(g>255) g = 255;
 			if(b>255) b = 255;
@@ -225,6 +252,7 @@ node rgb_relation(node tree,int r_relation[256],int g_relation[256],int b_relati
 	}
 	return tree;
 }/*}}}*/
+
 void make_hist(node tree, int hr[256], int hg[256], int hb[256])
 {
 	switch(tree.stat)
